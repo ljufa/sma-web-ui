@@ -2,11 +2,13 @@ import init from '/pkg/package.js';
 
 let auth0 = null;
 
-window.init_auth = async (domain, client_id) => {
+window.init_auth = async (domain, client_id, audience) => {
     auth0 = await createAuth0Client({
         domain,
         client_id,
+        audience
     });
+    
 
     const query = window.location.search;
     if (query.includes("code=") && query.includes("state=")) {
@@ -35,6 +37,11 @@ window.logout = () => {
     auth0.logout({
         returnTo: window.location.origin
     });
+}
+
+window.getTokenSilently = async () => {
+    return await auth0.getTokenSilently();
+    
 }
 
 init('/pkg/package_bg.wasm');

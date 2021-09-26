@@ -87,6 +87,7 @@ impl Page {
 struct AuthConfig {
     domain: String,
     client_id: String,
+    audience: String,
 }
 
 // ------ ------
@@ -139,9 +140,10 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::AuthConfigFetched(Ok(auth_config)) => {
             let domain = auth_config.domain.clone();
             let client_id = auth_config.client_id.clone();
+            let audience = auth_config.audience.clone();
 
             orders.perform_cmd(async { Msg::AuthInitialized(
-                init_auth(domain, client_id).await
+                init_auth(domain, client_id, audience).await
             )});
             model.auth_config = Some(auth_config);
         },
@@ -154,7 +156,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                         model.ctx.user = Some(user);
                         orders.perform_cmd({
                             let message = model.ctx.clone();
-                            async { Msg::LoggedIn(send_message(message).await) }
+                            async { Msg::LoggedIn(register_user(message).await) }
                             
                         }); 
                     },
@@ -209,13 +211,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 }
 
 
-async fn send_message(context: Context) -> fetch::Result<String> {
-    log!("Pozivam api {}", context.user);
-   
-    Request::new("https://sma-api.ljubojevic.freemyip.com/api/users")
-        .method(Method::Post)
-        //.header(Header::bearer(context.token.unwrap()))
-        .json(&context.user.unwrap())?
+async fn register_user(context: Context) -> fetch::Result<String> {
+    let token = getTokenSilently().await.unwrap();
+    Request::new("/sma-control/api/register")
+        .method(Method::Get)
+        .header(Header::bearer(token.as_string().unwrap()))
         .fetch()
         .await?
         .check_status()?
@@ -226,7 +226,7 @@ async fn send_message(context: Context) -> fetch::Result<String> {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(catch)]
-    async fn init_auth(domain: String, client_id: String) -> Result<JsValue, JsValue>;
+    async fn init_auth(domain: String, client_id: String, audience: String) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     async fn redirect_to_sign_up() -> Result<(), JsValue>;
@@ -236,6 +236,10 @@ extern "C" {
 
     #[wasm_bindgen(catch)]
     fn logout() -> Result<(), JsValue>;
+
+    #[wasm_bindgen(catch)]
+    async fn getTokenSilently() -> Result<JsValue, JsValue>;
+
 }
 
 // ------ ------

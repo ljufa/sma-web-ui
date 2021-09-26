@@ -17,7 +17,7 @@ watch = true
 description = "Start server"
 install_crate = { crate_name = "microserver", binary = "microserver", test_arg = "-h" }
 command = "microserver"
-args = ["--port", "${PORT}"]
+args = ["--port", "${PORT}", "public"]
 
 [tasks.verify]
 description = "Format, lint with Clippy and run tests"
